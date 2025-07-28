@@ -1,19 +1,10 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getBrands = void 0;
 const brands_1 = require("../models/brands");
-const getBrands = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getBrands = async (req, res) => {
     try {
-        const brands = yield brands_1.BrandModel.getAll();
+        const brands = await brands_1.BrandModel.getAll();
         res.status(200).json(brands);
     }
     catch (error) {
@@ -22,5 +13,5 @@ const getBrands = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             error: String(error),
         });
     }
-});
+};
 exports.getBrands = getBrands;

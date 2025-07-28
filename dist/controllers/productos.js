@@ -1,20 +1,11 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.searchProductos = exports.deleteProducto = exports.updateProducto = exports.postProducto = exports.getProducto = exports.getProductos = void 0;
 const producto_1 = require("../models/producto");
 // Obtener todos los productos
-const getProductos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getProductos = async (req, res) => {
     try {
-        const productos = yield producto_1.ProductModel.getAll();
+        const productos = await producto_1.ProductModel.getAll();
         res.json({
             msg: 'Productos obtenidos correctamente',
             data: productos,
@@ -26,13 +17,13 @@ const getProductos = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             error: String(error),
         });
     }
-});
+};
 exports.getProductos = getProductos;
 // Obtener un producto por ID
-const getProducto = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getProducto = async (req, res) => {
     const { id } = req.params;
     try {
-        const producto = yield producto_1.ProductModel.getById(Number(id));
+        const producto = await producto_1.ProductModel.getById(Number(id));
         if (!producto) {
             return res.status(404).json({
                 msg: `Producto con id ${id} no encontrado`,
@@ -49,10 +40,10 @@ const getProducto = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             error: String(error),
         });
     }
-});
+};
 exports.getProducto = getProducto;
 // Crear un nuevo producto
-const postProducto = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const postProducto = async (req, res) => {
     const { title, description, category, type, animal_category, brand_id, sizes } = req.body;
     // Validaciones
     if (!title || !description || !category || !type || !animal_category || !brand_id) {
@@ -80,7 +71,7 @@ const postProducto = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         }
     }
     try {
-        const nuevoProducto = yield producto_1.ProductModel.create({ title, description, category, type, animal_category, brand_id, sizes });
+        const nuevoProducto = await producto_1.ProductModel.create({ title, description, category, type, animal_category, brand_id, sizes });
         res.status(201).json({
             msg: 'Producto creado correctamente',
             data: nuevoProducto,
@@ -92,10 +83,10 @@ const postProducto = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             error: String(error),
         });
     }
-});
+};
 exports.postProducto = postProducto;
 // Actualizar un producto
-const updateProducto = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const updateProducto = async (req, res) => {
     const { id } = req.params;
     const { title, description, category, type, animal_category, brand_id, sizes } = req.body;
     // Validar que id sea un número válido
@@ -131,7 +122,7 @@ const updateProducto = (req, res) => __awaiter(void 0, void 0, void 0, function*
         }
     }
     try {
-        const productoActualizado = yield producto_1.ProductModel.update(numericId, { title, description, category, type, animal_category, brand_id, sizes });
+        const productoActualizado = await producto_1.ProductModel.update(numericId, { title, description, category, type, animal_category, brand_id, sizes });
         if (!productoActualizado) {
             return res.status(404).json({
                 msg: `Producto con id ${id} no encontrado`,
@@ -148,13 +139,13 @@ const updateProducto = (req, res) => __awaiter(void 0, void 0, void 0, function*
             error: String(error),
         });
     }
-});
+};
 exports.updateProducto = updateProducto;
 // Eliminar un producto
-const deleteProducto = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const deleteProducto = async (req, res) => {
     const { id } = req.params;
     try {
-        const eliminado = yield producto_1.ProductModel.delete(Number(id));
+        const eliminado = await producto_1.ProductModel.delete(Number(id));
         if (!eliminado) {
             return res.status(404).json({
                 msg: `Producto con id ${id} no encontrado`,
@@ -170,10 +161,10 @@ const deleteProducto = (req, res) => __awaiter(void 0, void 0, void 0, function*
             error: String(error),
         });
     }
-});
+};
 exports.deleteProducto = deleteProducto;
 // Buscar productos por texto
-const searchProductos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const searchProductos = async (req, res) => {
     const { q } = req.query;
     if (!q || typeof q !== 'string') {
         return res.status(400).json({
@@ -181,7 +172,7 @@ const searchProductos = (req, res) => __awaiter(void 0, void 0, void 0, function
         });
     }
     try {
-        const productos = yield producto_1.ProductModel.search(q);
+        const productos = await producto_1.ProductModel.search(q);
         res.json({
             msg: 'Productos encontrados',
             data: productos,
@@ -193,5 +184,5 @@ const searchProductos = (req, res) => __awaiter(void 0, void 0, void 0, function
             error: String(error),
         });
     }
-});
+};
 exports.searchProductos = searchProductos;
