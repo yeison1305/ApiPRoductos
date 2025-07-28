@@ -1,55 +1,52 @@
-import express, { application, Request, Response } from 'express'
+import express, { Request, Response } from 'express';
 import routesProducto from '../routes/productos';
+import routesBrands from '../routes/brands'; // Nueva importación
 import cors from 'cors';
 import db from '../db/connection';
 
-class server {
-private app: express.Application;
-private port: string;
+class Server {
+  private app: express.Application;
+  private port: string;
 
-constructor() {
+  constructor() {
     this.app = express();
-    this.port = process.env.PORT || '3001';
+    this.port = process.env.PORT || '3000';
     this.listen();
     this.middleware();
     this.routes();
-    this.dbConnect(); // Llamada al método para conectar la base de datos
-}
+    this.dbConnect();
+  }
 
-    listen() {
-        this.app.listen(this.port, () => {  
-            console.log(`aplicacion corriendo en el puerto ${this.port}`);
-        })
-    }
+  listen() {
+    this.app.listen(this.port, () => {
+      console.log(`Aplicación corriendo en el puerto ${this.port}`);
+    });
+  }
 
-routes() {
-    this.app.get('/', (req: Request, res:Response) => {
-        res.json({
-            msg:'api corriendo'
-        });
-})
+  routes() {
+    this.app.get('/', (req: Request, res: Response) => {
+      res.json({
+        msg: 'API corriendo',
+      });
+    });
 
     this.app.use('/api/productos', routesProducto);
-}
+    this.app.use('/api/brands', routesBrands); // Nueva ruta para marcas
+  }
 
-middleware() {
-//parseamos el body
+  middleware() {
     this.app.use(express.json());
-//cors
     this.app.use(cors());
-}
-//
-async  dbConnect() {
-       
+  }
+
+  async dbConnect() {
     try {
-            await db.connect();
-            console.log('Base de datos conectada');
-        } catch (error) {
-            console.error('Error al conectar a la base de datos:', error);
-        }
+      await db.query('SELECT 1'); // Prueba simple para verificar la conexión
+      console.log('Base de datos conectada');
+    } catch (error) {
+      console.error('Error al conectar a la base de datos:', error);
     }
-
-
-
+  }
 }
-export default server;
+
+export default Server;
