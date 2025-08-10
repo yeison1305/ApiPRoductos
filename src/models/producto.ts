@@ -11,6 +11,7 @@ export interface Product {
   brand_id: number;
   created_at?: string;
   sizes?: ProductSize[];
+  images?: Image[]; // Nueva interfaz para imágenes
   rating?: Rating;
   brand?: Brand;
 }
@@ -22,8 +23,13 @@ export interface ProductSize {
   price: number;
   is_free?: boolean;
   stock_quantity: number;
-  image_url?: string;
+  image_url?: string; // Mantenido por si sigue siendo relevante en product_sizes
   catalog_product_id?: string;
+}
+
+export interface Image {
+  image_id?: number;
+  image_url: string;
 }
 
 export interface Rating {
@@ -40,7 +46,7 @@ export interface Brand {
 }
 
 export class ProductModel {
-  // Obtener todos los productos con sus tallas, marca y calificación
+  // Obtener todos los productos con sus tallas, marca, calificación e imágenes
   static async getAll(): Promise<Product[]> {
     try {
       const { rows: products } = await pool.query(`
@@ -56,10 +62,20 @@ export class ProductModel {
               'price', ps.price,
               'is_free', ps.is_free,
               'stock_quantity', ps.stock_quantity,
-              'image_url', ps.image_url,
               'catalog_product_id', ps.catalog_product_id
             )
-          ) AS sizes
+          ) AS sizes,
+          COALESCE(
+            (SELECT json_agg(
+              json_build_object(
+                'image_id', i.image_id,
+                'image_url', i.image_url
+              )
+            ) 
+            FROM images i 
+            WHERE i.product_id = p.id
+            ), '[]'::json
+          ) AS images
         FROM products p
         LEFT JOIN brands b ON p.brand_id = b.id
         LEFT JOIN ratings r ON p.id = r.product_id
@@ -69,6 +85,7 @@ export class ProductModel {
       return products.map((row: any) => ({
         ...row,
         sizes: row.sizes.filter((s: any) => s.size_id !== null), // Filtra tallas nulas
+        images: row.images || [], // Asegura que images sea un arreglo vacío si no hay imágenes
         brand: row.brand_id ? { id: row.brand_id, name: row.brand_name, image_url: row.brand_image_url } : null,
         rating: row.rating_rate ? { product_id: row.product_id, rating_rate: row.rating_rate, rating_count: row.rating_count } : null,
       }));
@@ -77,7 +94,7 @@ export class ProductModel {
     }
   }
 
-  // Obtener un producto por ID con sus tallas, marca y calificación
+  // Obtener un producto por ID con sus tallas, marca, calificación e imágenes
   static async getById(id: number): Promise<Product | null> {
     try {
       const { rows } = await pool.query(`
@@ -93,10 +110,20 @@ export class ProductModel {
               'price', ps.price,
               'is_free', ps.is_free,
               'stock_quantity', ps.stock_quantity,
-              'image_url', ps.image_url,
               'catalog_product_id', ps.catalog_product_id
             )
-          ) AS sizes
+          ) AS sizes,
+          COALESCE(
+            (SELECT json_agg(
+              json_build_object(
+                'image_id', i.image_id,
+                'image_url', i.image_url
+              )
+            ) 
+            FROM images i 
+            WHERE i.product_id = p.id
+            ), '[]'::json
+          ) AS images
         FROM products p
         LEFT JOIN brands b ON p.brand_id = b.id
         LEFT JOIN ratings r ON p.id = r.product_id
@@ -108,6 +135,7 @@ export class ProductModel {
       return {
         ...rows[0],
         sizes: rows[0].sizes.filter((s: any) => s.size_id !== null),
+        images: rows[0].images || [],
         brand: rows[0].brand_id ? { id: rows[0].brand_id, name: rows[0].brand_name, image_url: rows[0].brand_image_url } : null,
         rating: rows[0].rating_rate ? { product_id: rows[0].product_id, rating_rate: rows[0].rating_rate, rating_count: rows[0].rating_count } : null,
       };
@@ -130,8 +158,18 @@ export class ProductModel {
       if (product.sizes && product.sizes.length > 0) {
         for (const size of product.sizes) {
           await client.query(
-            'INSERT INTO product_sizes (product_id, size, price, stock_quantity, image_url, catalog_product_id) VALUES ($1, $2, $3, $4, $5, $6)',
-            [newProduct.id, size.size, size.price, size.stock_quantity, size.image_url, size.catalog_product_id]
+            'INSERT INTO product_sizes (product_id, size, price, stock_quantity, catalog_product_id) VALUES ($1, $2, $3, $4, $5)',
+            [newProduct.id, size.size, size.price, size.stock_quantity, size.catalog_product_id]
+          );
+        }
+      }
+
+      // Si se proporcionan imágenes, insertarlas en la tabla images
+      if (product.images && product.images.length > 0) {
+        for (const image of product.images) {
+          await client.query(
+            'INSERT INTO images (product_id, image_url) VALUES ($1, $2)',
+            [newProduct.id, image.image_url]
           );
         }
       }
@@ -168,8 +206,18 @@ export class ProductModel {
         await client.query('DELETE FROM product_sizes WHERE product_id = $1', [id]);
         for (const size of product.sizes) {
           await client.query(
-            'INSERT INTO product_sizes (product_id, size, price, stock_quantity, image_url, catalog_product_id) VALUES ($1, $2, $3, $4, $5, $6)',
-            [id, size.size, size.price, size.stock_quantity, size.image_url, size.catalog_product_id]
+            'INSERT INTO product_sizes (product_id, size, price, stock_quantity, catalog_product_id) VALUES ($1, $2, $3, $4, $5)',
+            [id, size.size, size.price, size.stock_quantity, size.catalog_product_id]
+          );
+        }
+      }
+
+      if (product.images) {
+        await client.query('DELETE FROM images WHERE product_id = $1', [id]);
+        for (const image of product.images) {
+          await client.query(
+            'INSERT INTO images (product_id, image_url) VALUES ($1, $2)',
+            [id, image.image_url]
           );
         }
       }
@@ -210,10 +258,20 @@ export class ProductModel {
               'price', ps.price,
               'is_free', ps.is_free,
               'stock_quantity', ps.stock_quantity,
-              'image_url', ps.image_url,
               'catalog_product_id', ps.catalog_product_id
             )
-          ) AS sizes
+          ) AS sizes,
+          COALESCE(
+            (SELECT json_agg(
+              json_build_object(
+                'image_id', i.image_id,
+                'image_url', i.image_url
+              )
+            ) 
+            FROM images i 
+            WHERE i.product_id = p.id
+            ), '[]'::json
+          ) AS images
         FROM products p
         LEFT JOIN brands b ON p.brand_id = b.id
         LEFT JOIN ratings r ON p.id = r.product_id
@@ -224,6 +282,7 @@ export class ProductModel {
       return rows.map((row: any) => ({
         ...row,
         sizes: row.sizes.filter((s: any) => s.size_id !== null),
+        images: row.images || [],
         brand: row.brand_id ? { id: row.brand_id, name: row.brand_name, image_url: row.brand_image_url } : null,
         rating: row.rating_rate ? { product_id: row.product_id, rating_rate: row.rating_rate, rating_count: row.rating_count } : null,
       }));
